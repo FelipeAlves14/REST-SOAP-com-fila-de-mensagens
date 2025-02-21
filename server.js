@@ -13,24 +13,24 @@ const swaggerDocument = {
     },
     servers: [{ url: "http://localhost:3000" }],
     paths: {
-        "/usuarios/{id}": {
+        "/livros/{id}": {
             get: {
-                summary: "Obter detalhes de um usuário",
+                summary: "Obter detalhes de um livro",
                 parameters: [
                     { name: "id", in: "path", required: true, schema: { type: "string" } }
                 ],
-                tags: ["Usuários"],
+                tags: ["Livros"],
                 responses: {
                     "200": {
-                        description: "Usuário encontrado",
+                        description: "Livro encontrado",
                         content: {
                             "application/json": {
                                 example: {
                                     id: "1",
                                     nome: "João",
                                     _links: {
-                                        self: { href: "/usuarios/1" },
-                                        pedidos: { href: "/usuarios/1/pedidos" }
+                                        self: { href: "/livros/1" },
+                                        emprestimo: { href: "/livros/1/emprestimo" }
                                     }
                                 }
                             }
