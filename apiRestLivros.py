@@ -14,4 +14,4 @@ def get_livros():
     return jsonify({"livros": livros})
 
 # executar o servidor flask na porta 5001
-app.run(port=5001): 
+app.run(port=5000)

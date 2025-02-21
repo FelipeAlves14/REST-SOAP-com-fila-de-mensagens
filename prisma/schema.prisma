@@ -13,4 +13,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model 
+model Livro {
+  id         Int          @id @default(autoincrement())
+  titulo     String
+  n_paginas  Int
+  autor      String
+  Emprestimo Emprestimo[]
+}
+
+model Emprestimo {
+  id              Int      @id @default(autoincrement())
+  data_emprestimo DateTime @default(now())
+  data_devolucao  DateTime
+  livro_id        Int
+  livro           Livro    @relation(fields: [livro_id], references: [id])
+}

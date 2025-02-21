@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@prisma/client": "^6.4.1",
+    "easy-soap-request": "^5.6.1",
     "express": "^4.21.2",
     "pg": "^8.13.3",
     "swagger-ui-express": "^5.0.1"
