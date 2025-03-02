@@ -299,6 +299,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.listen(3000, () => {
     console.log("🚀 API Gateway rodando em http://localhost:3000");
     console.log("📄 Documentação Swagger disponível em http://localhost:3000/docs");
+    startWorker();
 });
 
 
