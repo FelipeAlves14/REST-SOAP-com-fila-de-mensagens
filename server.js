@@ -2,18 +2,22 @@ const express = require('express');
 const swaggerUi = require('swagger-ui-express');
 const { prisma } = require('@prisma/client');
 const soapRequest = require('easy-soap-request');
+const amqp = require("amqplib");
+const axios = require("axios");
+const xml2js = require("xml2js");
 
 const app = express();
 
-const amqp = require("amqplib");
+const RABBITMQ_URL = "amqp://localhost:5672"; 
+const QUEUE_NAME = "request_queue";
 
+// conexão com o sistema de mensageria (RabbitMQ)
 async function connectRabbitMQ() {
-    const connection = await amqp.connect("amqp://localhost");
+    const connection = await amqp.connect(RABBITMQ_URL);
     const channel = await connection.createChannel();
-    await channel.assertQueue("request_queue", { durable: true });
+    await channel.assertQueue(QUEUE_NAME, { durable: true });
     return channel;
 }
-
 
 const swaggerDocument = {
     openapi: "3.0.0",
@@ -223,46 +227,112 @@ const swaggerDocument = {
     }
 };
 
-app.get('/livros', async (req, res) => {
-    await fetch('http://localhost:5000/livros')
-        .then(response => {
-            res.status(200).json(response.json());
-        });
+// endpoint para adicionar uma requisição a fila
+app.post("/proxy", async (req, res) => {
+    try {
+        const channel = await connectRabbitMQ();
+        const requestData = JSON.stringify(req.body);
+
+        channel.sendToQueue(QUEUE_NAME, Buffer.from(requestData), { persistent: true });
+
+        res.status(202).json({ status: "Requisição adicionada à fila" });
+    } catch (error) {
+        console.error("Erro ao enviar para RabbitMQ:", error);
+        res.status(500).json({ error: "Erro interno" });
+    }
 });
 
-app.post('/livros', async (req, res) => {
-    await fetch('http://localhost:5000/livros', {
-        method: 'POST',
-        body: JSON.stringify(req.body),
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(response => {
-        res.status(201).json(response.json());
+// worker
+async function startWorker() {
+    const channel = await connectRabbitMQ();
+
+    channel.consume(QUEUE_NAME, async (msg) => {
+        if (msg !== null) {
+            console.log("Processando requisição:", msg.content.toString());
+            const data = JSON.parse(msg.content.toString());
+
+            try {
+                let response;
+                // requisição à api rest
+                if (data.type === "REST") {
+                    response = await axios.get(data.url, { params: data.params });
+                    console.log("Resposta REST:", response.data);
+                }
+                // requisição à api soap
+                else if (data.type === "SOAP") {
+                    const soapRequest = `
+                        <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                            <soapenv:Body>
+                                <GetData>
+                                    <param>${data.param}</param>
+                                </GetData>
+                            </soapenv:Body>
+                        </soapenv:Envelope>`;
+
+                    const headers = { "Content-Type": "text/xml" };
+                    response = await axios.post(data.url, soapRequest, { headers });
+                    const parsedResponse = await xml2js.parseStringPromise(response.data);
+                    console.log("Resposta SOAP:", parsedResponse);
+                }
+
+                channel.ack(msg); // Confirma o processamento da mensagem
+            } catch (error) {
+                console.error("Erro ao processar requisição:", error);
+            }
+        }
     });
+
+    console.log("Worker iniciado e aguardando requisições...");
+}
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+app.listen(3000, () => {
+    console.log("🚀 API Gateway rodando em http://localhost:3000");
+    console.log("📄 Documentação Swagger disponível em http://localhost:3000/docs");
 });
 
-app.delete('/livros/:id', async (req, res) => {
-    await fetch(`http://localhost:5000/livros/${res.params.id}`, {
-        method: 'DELETE'
-    })
-    .then(response => {
-        res.status(204).json();
-    });
-});
 
-app.get('/livros/:id', async (req, res) => {
-    await fetch(`http://localhost:5000/livros/${res.params.id}`)
-        .then(response => {
-            res.status(200).json(response.json());
-        });
-});
+// app.get('/livros', async (req, res) => {
+//     await fetch('http://localhost:5000/livros')
+//         .then(response => {
+//             res.status(200).json(response.json());
+//         });
+// });
 
-app.get('/livros/:id/emprestimos', async (req, res) => {
-    await fetch(`http://localhost:5000/livros/${res.params.id}/emprestimos`)
-        .then(response => {
-            res.status(200).json(response.json());
-        });
-});
+// app.post('/livros', async (req, res) => {
+//     await fetch('http://localhost:5000/livros', {
+//         method: 'POST',
+//         body: JSON.stringify(req.body),
+//         headers: { 'Content-Type': 'application/json' }
+//     })
+//     .then(response => {
+//         res.status(201).json(response.json());
+//     });
+// });
+
+// app.delete('/livros/:id', async (req, res) => {
+//     await fetch(`http://localhost:5000/livros/${res.params.id}`, {
+//         method: 'DELETE'
+//     })
+//     .then(response => {
+//         res.status(204).json();
+//     });
+// });
+
+// app.get('/livros/:id', async (req, res) => {
+//     await fetch(`http://localhost:5000/livros/${res.params.id}`)
+//         .then(response => {
+//             res.status(200).json(response.json());
+//         });
+// });
+
+// app.get('/livros/:id/emprestimos', async (req, res) => {
+//     await fetch(`http://localhost:5000/livros/${res.params.id}/emprestimos`)
+//         .then(response => {
+//             res.status(200).json(response.json());
+//         });
+// });
 
 // app.get('/emprestimos', async (req, res) => {
 //     const envelope = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -305,9 +375,3 @@ app.get('/livros/:id/emprestimos', async (req, res) => {
 //     });
 // });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-app.listen(3000, () => {
-    console.log("🚀 API Gateway rodando em http://localhost:3000");
-    console.log("📄 Documentação Swagger disponível em http://localhost:3000/docs");
-});
