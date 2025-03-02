@@ -255,7 +255,17 @@ async function startWorker() {
                 let response;
                 // requisição à api rest
                 if (data.type === "REST") {
-                    response = await axios.get(data.url, { params: data.params });
+                    switch(data.method){
+                        case "GET":
+                            response = await axios.get(data.url, { params: data.params });
+                            break;
+                        case "POST":
+                            response = await axios.post(data.url, { params: data.params });
+                            break;
+                        case "DELETE":
+                            response = await axios.delete(data.url, { params: data.params });
+                            break;
+                    }
                     console.log("Resposta REST:", response.data);
                 }
                 // requisição à api soap
@@ -271,7 +281,6 @@ async function startWorker() {
 
                     const headers = { "Content-Type": "text/xml" };
                     response = await axios.post(data.url, soapRequest, { headers });
-                    const parsedResponse = await xml2js.parseStringPromise(response.data);
                     console.log("Resposta SOAP:", parsedResponse);
                 }
 
