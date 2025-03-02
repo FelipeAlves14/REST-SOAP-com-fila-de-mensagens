@@ -17,7 +17,7 @@ async function connectRabbitMQ() {
     const channel = await connection.createChannel();
     await channel.assertQueue(QUEUE_NAME, { durable: true });
     return channel;
-}
+};
 
 const swaggerDocument = {
     openapi: "3.0.0",
@@ -283,7 +283,7 @@ async function startWorker() {
     });
 
     console.log("Worker iniciado e aguardando requisições...");
-}
+};
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
