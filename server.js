@@ -1,10 +1,10 @@
 const express = require('express');
 const swaggerUi = require('swagger-ui-express');
-const { prisma } = require('@prisma/client');
-const soapRequest = require('easy-soap-request');
 const amqp = require("amqplib");
 const axios = require("axios");
-const xml2js = require("xml2js");
+// const xml2js = require("xml2js");
+// const { prisma } = require('@prisma/client');
+// const soapRequest = require('easy-soap-request');
 
 const app = express();
 
