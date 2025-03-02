@@ -11,14 +11,6 @@ const app = express();
 const RABBITMQ_URL = "amqp://localhost:5672"; 
 const QUEUE_NAME = "request_queue";
 
-// conexão com o sistema de mensageria (RabbitMQ)
-async function connectRabbitMQ() {
-    const connection = await amqp.connect(RABBITMQ_URL);
-    const channel = await connection.createChannel();
-    await channel.assertQueue(QUEUE_NAME, { durable: true });
-    return channel;
-};
-
 const swaggerDocument = {
     openapi: "3.0.0",
     info: {
@@ -227,6 +219,14 @@ const swaggerDocument = {
     }
 };
 
+// conexão com o sistema de mensageria (RabbitMQ)
+async function connectRabbitMQ() {
+    const connection = await amqp.connect(RABBITMQ_URL);
+    const channel = await connection.createChannel();
+    await channel.assertQueue(QUEUE_NAME, { durable: true });
+    return channel;
+};
+
 // endpoint para adicionar uma requisição a fila
 app.post("/proxy", async (req, res) => {
     try {
@@ -253,6 +253,7 @@ async function startWorker() {
 
             try {
                 let response;
+
                 // requisição à api rest
                 if (data.type === "REST") {
                     switch(data.method){
@@ -268,6 +269,7 @@ async function startWorker() {
                     }
                     console.log("Resposta REST:", response.data);
                 }
+                
                 // requisição à api soap
                 else if (data.type === "SOAP") {
                     const soapRequest = `
