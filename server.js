@@ -5,6 +5,16 @@ const soapRequest = require('easy-soap-request');
 
 const app = express();
 
+const amqp = require("amqplib");
+
+async function connectRabbitMQ() {
+    const connection = await amqp.connect("amqp://localhost");
+    const channel = await connection.createChannel();
+    await channel.assertQueue("request_queue", { durable: true });
+    return channel;
+}
+
+
 const swaggerDocument = {
     openapi: "3.0.0",
     info: {
