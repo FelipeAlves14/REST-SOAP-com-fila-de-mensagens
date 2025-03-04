@@ -22,7 +22,7 @@ function AdicionarLivro() {
             url: 'http://localhost:5000/livros',
             type: 'REST',
             method: 'POST',
-            data: {
+            infos: {
                 titulo: data.titulo,
                 n_paginas: data.n_paginas,
                 autor: data.autor

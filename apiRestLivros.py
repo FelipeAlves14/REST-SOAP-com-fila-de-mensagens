@@ -8,9 +8,14 @@ def init_db():
     conn = sqlite3.connect("livros.sqlite3")  # Banco de dados salvo como .sqlite3
     cursor = conn.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS livros (
+    ALTER TABLE livros
+        ADD n_paginas INT;
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS livros_2 (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             titulo TEXT NOT NULL,
+            n_paginas INTEGER,
             autor TEXT NOT NULL
         )
     """)
@@ -65,8 +70,8 @@ def get_livros():
 # Rota para adicionar um novo livro ao banco de dados
 @app.route('/livros', methods=['POST'])
 def add_livro():
-    novo_livro = request.get_json()
-    print(novo_livro)
+    livro = request.get_json()
+    novo_livro = livro['infos']
     conn = sqlite3.connect("livros.sqlite3")
     cursor = conn.cursor()
     

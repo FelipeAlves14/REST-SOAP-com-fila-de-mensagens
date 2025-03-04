@@ -235,7 +235,8 @@ app.post("/proxy", async (req, res) => {
 
         res.status(202).json({ status: "Requisição adicionada à fila" });
     } catch (error) {
-        console.error("Erro ao enviar para RabbitMQ:", error);
+        console.error("Erro ao enviar para RabbitMQ.");
+        //console.error("Erro ao enviar para RabbitMQ:", error);
         res.status(500).json({ error: "Erro interno" });
     }
 });
@@ -248,21 +249,21 @@ async function startWorker() {
         if (msg !== null) {
             //console.log("Processando requisição:", msg.content.toString());
             const data = JSON.parse(msg.content.toString());
+            console.log(data.infos);
 
             try {
                 let response;
-                console.log("Requisição: ", data);
                 // requisição à api rest
-                if (data.type === "REST") {
+                if (data.type === "REST") {   
                     switch(data.method){
                         case "GET":
-                            response = await axios.get(data.url, { infos: data.data });
+                            response = await axios.get(data.url, { infos: data.infos });
                             break;
                         case "POST":
-                            response = await axios.post(data.url, { infos: data.data });
+                            response = await axios.post(data.url, { infos: data.infos });
                             break;
                         case "DELETE":
-                            response = await axios.delete(data.url, { infos: data.data });
+                            response = await axios.delete(data.url, { infos: data.infos });
                             break;
                     }
                     console.log("Resposta REST:", response.data);
@@ -286,7 +287,8 @@ async function startWorker() {
 
                 channel.ack(msg); // Confirma o processamento da mensagem
             } catch (error) {
-                console.error("Erro ao processar requisição:", error);
+                console.error("Erro ao processar requisição");
+                //console.error("Erro ao processar requisição:", error);
             }
         }
     });
