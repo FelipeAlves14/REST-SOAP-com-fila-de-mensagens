@@ -2,14 +2,12 @@ const express = require('express');
 const swaggerUi = require('swagger-ui-express');
 const amqp = require("amqplib");
 const axios = require("axios");
-// const xml2js = require("xml2js");
-// const { prisma } = require('@prisma/client');
-// const soapRequest = require('easy-soap-request');
+var cors = require('cors')
 
 const app = express();
-
-const RABBITMQ_URL = "amqp://localhost:5672"; 
-const QUEUE_NAME = "request_queue";
+app.use(cors());
+app.use(express.json()); // Permite processar JSON no body
+app.use(express.urlencoded({ extended: true })); // Permite processar form-urlencoded
 
 const swaggerDocument = {
     openapi: "3.0.0",
@@ -221,9 +219,9 @@ const swaggerDocument = {
 
 // conexão com o sistema de mensageria (RabbitMQ)
 async function connectRabbitMQ() {
-    const connection = await amqp.connect(RABBITMQ_URL);
+    const connection = await amqp.connect("amqp://localhost:5672");
     const channel = await connection.createChannel();
-    await channel.assertQueue(QUEUE_NAME, { durable: true });
+    await channel.assertQueue("request_queue", { durable: true });
     return channel;
 };
 
@@ -233,7 +231,7 @@ app.post("/proxy", async (req, res) => {
         const channel = await connectRabbitMQ();
         const requestData = JSON.stringify(req.body);
 
-        channel.sendToQueue(QUEUE_NAME, Buffer.from(requestData), { persistent: true });
+        channel.sendToQueue("request_queue", Buffer.from(requestData), { persistent: true });
 
         res.status(202).json({ status: "Requisição adicionada à fila" });
     } catch (error) {
@@ -246,25 +244,25 @@ app.post("/proxy", async (req, res) => {
 async function startWorker() {
     const channel = await connectRabbitMQ();
 
-    channel.consume(QUEUE_NAME, async (msg) => {
+    channel.consume("request_queue", async (msg) => {
         if (msg !== null) {
-            console.log("Processando requisição:", msg.content.toString());
+            //console.log("Processando requisição:", msg.content.toString());
             const data = JSON.parse(msg.content.toString());
 
             try {
                 let response;
-
+                console.log("Requisição: ", data);
                 // requisição à api rest
                 if (data.type === "REST") {
                     switch(data.method){
                         case "GET":
-                            response = await axios.get(data.url, { params: data.params });
+                            response = await axios.get(data.url, { infos: data.data });
                             break;
                         case "POST":
-                            response = await axios.post(data.url, { params: data.params });
+                            response = await axios.post(data.url, { infos: data.data });
                             break;
                         case "DELETE":
-                            response = await axios.delete(data.url, { params: data.params });
+                            response = await axios.delete(data.url, { infos: data.data });
                             break;
                     }
                     console.log("Resposta REST:", response.data);
@@ -276,7 +274,7 @@ async function startWorker() {
                         <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
                             <soapenv:Body>
                                 <GetData>
-                                    <param>${data.param}</param>
+                                    <param>${data.data}</param>
                                 </GetData>
                             </soapenv:Body>
                         </soapenv:Envelope>`;

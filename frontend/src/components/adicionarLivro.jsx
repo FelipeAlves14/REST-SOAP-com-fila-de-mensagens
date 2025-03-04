@@ -1,15 +1,43 @@
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import addLivroCss from '../assets/css/adicionarLivro.module.css';
+import axios from "axios";
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { useForm } from 'react-hook-form';
 
-function AdicionarLivro(){
-    return(
+function AdicionarLivro() {
+    const schema = yup.object().shape({
+        titulo: yup.string().required(),
+        autor: yup.string().required(),
+        n_paginas: yup.number().required()
+    })
+
+    const { handleSubmit, register, formState: { errors } } = useForm({
+        resolver: yupResolver(schema)
+    });
+
+    const submitBook = async (data) => {
+        await axios.post('http://localhost:3000/proxy', {
+            url: 'http://localhost:5000/livros',
+            type: 'REST',
+            method: 'POST',
+            data: {
+                titulo: data.titulo,
+                n_paginas: data.n_paginas,
+                autor: data.autor
+            }
+        })
+    }
+
+    return (
         <>
-            <form action="" className={addLivroCss.formulario}>
+            <form onSubmit={handleSubmit(submitBook)} action="POST" className={addLivroCss.formulario}>
                 <h1>Adicionar livro</h1>
-                <InputText type="text" placeholder="Título"/>
-                <InputText type="text" placeholder="Autor"/>
-                <Button label="Adicionar livro" />
+                <InputText type="text" placeholder="Título" name="titulo" {...register("titulo")} />
+                <InputText type="number" placeholder="Número de páginas" name="n_paginas" {...register("n_paginas")} />
+                <InputText type="text" placeholder="Autor" name="autor" {...register("autor")} />
+                <Button label="Adicionar livro" type='submit' />
             </form>
         </>
     )
