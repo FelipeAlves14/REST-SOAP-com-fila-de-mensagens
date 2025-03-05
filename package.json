@@ -8,9 +8,11 @@
     "cors": "^2.8.5",
     "easy-soap-request": "^5.6.1",
     "express": "^4.21.2",
+    "ioredis": "^5.5.0",
     "pg": "^8.13.3",
     "primereact": "^10.9.2",
     "react-hook-form": "^7.54.2",
+    "redis": "^4.7.0",
     "swagger-ui-express": "^5.0.1",
     "xml2js": "^0.6.2",
     "yup": "^1.6.1"
